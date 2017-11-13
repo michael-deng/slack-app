@@ -1,0 +1,10 @@
+Starting instructions:
+
+source env/bin/activate
+python app.py
+./ngrok http 5000
+Make sure the http url in API is good
+
+Changing from Dev to Prod:
+
+Change the token SlackClient uses in events handler

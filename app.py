@@ -31,8 +31,14 @@ url = "https://dev.slack.com/api/chat.postMessage"
 # client_secret = os.environ["SLACK_CLIENT_SECRET"]
 # oauth_scope = os.environ["SLACK_SCOPE"]
 
-client_id = "222558384727.229866327719"
-client_secret = "17d7347287c88768148a368d67916dac"
+# Slack Prod
+# client_id = "222558384727.229866327719"
+# client_secret = "17d7347287c88768148a368d67916dac"
+
+# Slack Dev
+client_id = "12434129009.15561199617"
+client_secret = "f7bfdf9f59bdcaf2b6d54527da938ef4"
+
 oauth_scope = "incoming-webhook,commands,channels:history"
 
 access_token = ''
@@ -174,8 +180,8 @@ def thanks():
     # an OAuth token using the oauth.access endpoint
     auth_response = sc.api_call(
         "oauth.access",
-        client_id=self.oauth["client_id"],
-        client_secret=self.oauth["client_secret"],
+        client_id=client_id,
+        client_secret=client_secret,
         code=code
     )
 

@@ -13,23 +13,13 @@ import requests
 pyBot = bot.Bot()
 slack = pyBot.client
 
-
-
 # Slack Prod
 # sc = SlackClient("xoxp-222558384727-220926773297-232297273809-6c29eb8da1c528b44f5c0de5c31dea7e")
 # token = "xoxp-222558384727-220926773297-232297273809-6c29eb8da1c528b44f5c0de5c31dea7e"
-# url = "https://slack.com/api/chat.postMessage"
 
 # Slack Dev
-sc = SlackClient("xoxp-12434129009-12434129089-16184187936-bc5468ef88a33b31c917b29c270db439")
-token = "xoxp-12434129009-12434129089-16184187936-bc5468ef88a33b31c917b29c270db439"
-url = "https://dev.slack.com/api/chat.postMessage"
-
-
-
-# client_id = os.environ["SLACK_CLIENT_ID"]
-# client_secret = os.environ["SLACK_CLIENT_SECRET"]
-# oauth_scope = os.environ["SLACK_SCOPE"]
+# sc = SlackClient("xoxp-12434129009-12434129089-16184187936-bc5468ef88a33b31c917b29c270db439")
+# token = "xoxp-12434129009-12434129089-16184187936-bc5468ef88a33b31c917b29c270db439"
 
 # Slack Prod
 # client_id = "222558384727.229866327719"
@@ -39,12 +29,19 @@ url = "https://dev.slack.com/api/chat.postMessage"
 client_id = "12434129009.15561199617"
 client_secret = "f7bfdf9f59bdcaf2b6d54527da938ef4"
 
-oauth_scope = "incoming-webhook,commands,channels:history"
-
-access_token = ''
+oauth_scope = "incoming-webhook,commands,channels:history"  # outdated and unused
 
 app = Flask(__name__)
 
+access_tokens = {}
+
+# Grab the stored access tokens corresponding to existing installations of the app
+f=open("slack-app/access_tokens.txt", "r")
+lines = f.readlines()
+for line in lines:
+    team, token = line.split(',')
+    access_tokens[team] = token
+f.close()
 
 @app.route("/", methods=["POST"])
 def app_actions():
@@ -134,11 +131,18 @@ def thanks():
         "code":code
     })
 
+    resp_content = json.loads(auth_response._content)
+
     # To keep track of authorized users, we will save the tokens to the global
     # access_tokens object
-    token = json.loads(auth_response._content)["access_token"]
-    print(token)
-    access_token = token
+    access_token = resp_content["access_token"]
+    team = resp_content["team_id"]
+
+    if team not in access_tokens:
+        access_tokens[team] = access_tokens
+        f=open("slack-app/access_tokens.txt", "a+")
+        f.write(team + "," + access_token)
+        f.close()
 
     return render_template("thanks.html")
 
@@ -161,13 +165,11 @@ def handle_event():
         #     channel=channel,
         #     text="reaction added",
         # )
-        print(token)
-        ret = requests.post(url, params={
+        ret = requests.post("https://dev.slack.com/api/chat.postMessage", params={
             "token":token,
             "channel":channel,
             "text":"reaction added"
         })
-        print ret.text
         return make_response("Heard a message", 200,)
 
     message = "You have not added an event handler for the %s" % event_type
@@ -180,11 +182,13 @@ def handle_action():
     payload = json.loads(request.form.get('payload'))
     
     if 'action_type' in payload and payload['action_type'] == 'message_action':
-        print(payload)
-        ret = requests.post(url, params={
+        token = access_tokens[payload['team']['id'].encode('utf-8')]
+
+        ret = requests.post("https://dev.slack.com/api/chat.postMessage", params={
             "token":token,
             "channel":payload['channel']['id'],
-            "text":"Received action invocation from message: " + payload['message']['text']
+            "text":"Received action invocation from message: " + payload['message']['text'],
+            "as_user":False
         })
         return make_response("Received app action invocation", 200,)
 

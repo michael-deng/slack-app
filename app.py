@@ -29,8 +29,6 @@ slack = pyBot.client
 client_id = "12434129009.15561199617"
 client_secret = "f7bfdf9f59bdcaf2b6d54527da938ef4"
 
-oauth_scope = "incoming-webhook,commands,channels:history"  # outdated and unused
-
 app = Flask(__name__)
 
 access_tokens = {}
@@ -42,6 +40,9 @@ for line in lines:
     team, token = line.split(',')
     access_tokens[team] = token
 f.close()
+
+print('Initial api teams:')
+print(access_tokens)
 
 @app.route("/", methods=["POST"])
 def app_actions():
@@ -96,7 +97,7 @@ def pre_install():
 
     # Our template is using the Jinja templating language to dynamically pass
     # our client id and scope
-    return render_template("install.html", client_id=client_id, scope=scope)
+    return render_template("install.html")
 
 
 @app.route("/thanks", methods=["GET", "POST"])
@@ -138,8 +139,11 @@ def thanks():
     access_token = resp_content["access_token"]
     team = resp_content["team_id"]
 
+    print('Oauth resp:')
+    print(resp_content)
+
     if team not in access_tokens:
-        access_tokens[team] = access_tokens
+        access_tokens[team] = access_token
         f=open("slack-app/access_tokens.txt", "a+")
         f.write(team + "," + access_token)
         f.close()
@@ -182,7 +186,14 @@ def handle_action():
     payload = json.loads(request.form.get('payload'))
     
     if 'action_type' in payload and payload['action_type'] == 'message_action':
-        token = access_tokens[payload['team']['id'].encode('utf-8')]
+
+        print('Action payload:')
+        print(payload)
+
+        print('Access tokens:')
+        print(access_tokens)
+
+        token = access_tokens[payload['team']['id']]
 
         ret = requests.post("https://dev.slack.com/api/chat.postMessage", params={
             "token":token,
@@ -217,7 +228,6 @@ def handle_action():
             "response_type": "in_channel",
             "text": "Something went wrong",
         })
-
 
 if __name__ == '__main__':
     app.run(debug=True)
